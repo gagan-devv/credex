@@ -23,10 +23,14 @@ share/python-wheels/
 MANIFEST
 
 # Virtual Environments
+.venv
 .venv/
 venv/
 ENV/
 env/
+
+# ML Artifacts
+catboost_info/
 
 # Jupyter Notebooks
 .ipynb_checkpoints
