@@ -1,25 +1,24 @@
 \begin{table}[htbp]
 \centering
-\small
-\caption{Descriptive Statistics of Key Credit Predictors by Terminal Loan Status}
+\caption{Summary Descriptive Statistics and Two-Sample Tests: Default vs. Non-Default Cohorts}
 \label{tab:descriptive_stats}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccccc@{}}
+\small
+\begin{tabular}{lrrrrrrr}
 \toprule
-\textbf{Variable} & \multicolumn{2}{c}{\textbf{Fully Paid ($Y=0$)}} & \multicolumn{2}{c}{\textbf{Default ($Y=1$)}} & \textbf{$t$-stat} & \textbf{$p$-value} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5}
-& \textbf{Mean} & \textbf{SD} & \textbf{Mean} & \textbf{SD} & & \\
+ & \multicolumn{3}{c}{\textbf{Non-Default ($y=0, N=1,545$)}} & \multicolumn{3}{c}{\textbf{Default ($y=1, N=455$)}} & \textbf{Two-Sample Test} \\
+\cmidrule(lr){2-4} \cmidrule(lr){5-7} \cmidrule(lr){8-8}
+\textbf{Feature} & \textbf{Mean} & \textbf{Std} & \textbf{Median} & \textbf{Mean} & \textbf{Std} & \textbf{Median} & \textbf{$p$-value ($t$-test)} \\
 \midrule
-Debt To Income & 23.19 & 11.37 & 29.72 & 10.87 & 7.97 & < 0.001*** \\
-Annual Income & 66052.51 & 34924.40 & 68555.17 & 34530.59 & 0.97 & 0.333 \\
-Loan Amount & 20550.36 & 11371.02 & 20904.94 & 11074.54 & 0.43 & 0.670 \\
-Installment & 600.63 & 315.83 & 610.69 & 307.96 & 0.44 & 0.664 \\
-Fico Score & 735.17 & 70.58 & 696.81 & 67.42 & -7.54 & < 0.001*** \\
-Delinq 2Yrs & 0.25 & 0.49 & 0.34 & 0.57 & 2.13 & 0.034 \\
-Revol Utilization & 47.80 & 28.68 & 52.83 & 27.53 & 2.43 & 0.016 \\
+    Debt-to-Income Ratio (DTI, \%) & 23.59 & 11.37 & 22.97 & 29.68 & 10.57 & 31.21 & $< 0.001^{***}$ \\
+    Verified Annual Income (\$) & 65,437.7 & 34,725.4 & 58,125.4 & 67,765.0 & 34,939.9 & 61,074.3 & $0.211$ \\
+    Requested Loan Amount (\$) & 20,287.4 & 11,347.6 & 20,160.8 & 20,167.7 & 11,077.1 & 20,624.0 & $0.840$ \\
+    Scheduled Monthly Installment (\$) & 592.94 & 315.62 & 590.04 & 590.27 & 307.81 & 608.75 & $0.871$ \\
+    Credit Bureau Risk Score (FICO) & 735.74 & 70.73 & 741.00 & 686.40 & 64.39 & 674.00 & $< 0.001^{***}$ \\
+    30+ Day Delinquencies in Last 2 Years & 0.271 & 0.530 & 0.000 & 0.371 & 0.590 & 0.000 & $0.001^{**}$ \\
+    Revolving Line Utilization (\%) & 47.40 & 28.45 & 45.50 & 55.48 & 27.46 & 57.40 & $< 0.001^{***}$ \\
 \bottomrule
-\end{tabular*}
-\begin{tablenotes}
-\footnotesize
-\item Note: Sample consists of completed loan contracts. Two-sample Welch's $t$-test evaluated. *** $p < 0.001$.
-\end{tablenotes}
+\end{tabular}
+\begin{minipage}{\linewidth}\vspace{1ex}\footnotesize
+\textit{Notes:} Descriptive statistics computed across completed lending contracts. Two-sample Welch's $t$-test assesses the null hypothesis of equal population means between non-default and default cohorts ($^{***}p < 0.001$, $^{**}p < 0.01$, $^{*}p < 0.05$).
+\end{minipage}
 \end{table}

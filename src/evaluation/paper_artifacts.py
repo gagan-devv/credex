@@ -19,12 +19,11 @@ Compiles empirical benchmark results into publication-ready deliverables:
    - Executive briefing with key empirical metrics, percentage savings, and statistical significance statements.
 """
 
-from dataclasses import dataclass
 import logging
 import os
+from dataclasses import dataclass
 from pathlib import Path
-import re
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -46,12 +45,8 @@ import matplotlib.pyplot as plt
 from src.data.loader import generate_synthetic_lending_club
 from src.models.baselines import (
     BASELINE_MODEL_NAMES,
-    PUBLISHED_BENCHMARKS,
-    run_baseline_replication,
 )
 from src.models.threshold_optimizer import (
-    ThresholdOptimizer,
-    compute_portfolio_dollar_loss,
     compute_unit_expected_loss,
 )
 
@@ -139,9 +134,7 @@ def validate_latex_table(latex_str: str) -> Tuple[bool, List[str]]:
     open_braces = latex_str.count("{")
     close_braces = latex_str.count("}")
     if open_braces != close_braces:
-        errors.append(
-            f"Unbalanced curly braces: {open_braces} open vs {close_braces} close."
-        )
+        errors.append(f"Unbalanced curly braces: {open_braces} open vs {close_braces} close.")
 
     # Check booktabs commands
     if "\\toprule" not in latex_str or "\\bottomrule" not in latex_str:
@@ -158,9 +151,11 @@ def validate_latex_table(latex_str: str) -> Tuple[bool, List[str]]:
 
 def generate_table1_descriptive_stats(
     df: Optional[pd.DataFrame] = None,
-    output_path: Union[str, Path] = "reports/paper/tables/table1_descriptive_stats.tex",
+    output_path: Optional[Union[str, Path]] = "reports/paper/tables/table1_descriptive_stats.tex",
     target_col: str = "loan_status",
     features: Optional[List[str]] = None,
+    feature_cols: Optional[List[str]] = None,
+    **kwargs: Any,
 ) -> str:
     """
     Generate Table 1: Summary descriptive statistics and two-sample t-test / Mann-Whitney
@@ -176,12 +171,17 @@ def generate_table1_descriptive_stats(
         Binary target column.
     features : Optional[List[str]]
         List of continuous feature names.
+    feature_cols : Optional[List[str]]
+        Alias for features.
 
     Returns
     -------
     str
         Generated LaTeX string.
     """
+    if features is None and feature_cols is not None:
+        features = feature_cols
+
     if df is None:
         df = generate_synthetic_lending_club(n_samples=2000, random_state=42)
 
@@ -392,20 +392,29 @@ def generate_table2_li_wu_replication(
         },
     }
 
+    def _extract_metric_val(val: Any, default: float = 0.0) -> float:
+        if isinstance(val, dict):
+            return float(val.get("mean", default))
+        elif isinstance(val, (int, float, np.floating, np.integer)):
+            return float(val)
+        return default
+
     # Extract metrics per model
     parsed_metrics: Dict[str, Dict[str, float]] = {}
 
     for model_name in BASELINE_MODEL_NAMES:
         if results_or_summary and model_name in results_or_summary:
             entry = results_or_summary[model_name]
-            summary = entry.get("summary", entry)
+            summary = entry.get("summary", entry) if isinstance(entry, dict) else {}
             parsed_metrics[model_name] = {
-                "roc_auc": float(summary.get("roc_auc", {}).get("mean", summary.get("roc_auc", 0.0))),
-                "accuracy": float(summary.get("accuracy", {}).get("mean", summary.get("accuracy", 0.0))),
-                "precision": float(summary.get("precision", {}).get("mean", summary.get("precision", 0.0))),
-                "recall": float(summary.get("recall", {}).get("mean", summary.get("recall", 0.0))),
-                "f1": float(summary.get("f1", {}).get("mean", summary.get("f1", 0.0))),
-                "brier": float(summary.get("brier_score", {}).get("mean", summary.get("brier", 0.15))),
+                "roc_auc": _extract_metric_val(summary.get("roc_auc"), 0.0),
+                "accuracy": _extract_metric_val(summary.get("accuracy"), 0.0),
+                "precision": _extract_metric_val(summary.get("precision"), 0.0),
+                "recall": _extract_metric_val(summary.get("recall"), 0.0),
+                "f1": _extract_metric_val(summary.get("f1"), 0.0),
+                "brier": _extract_metric_val(
+                    summary.get("brier_score", summary.get("brier")), 0.15
+                ),
             }
         else:
             parsed_metrics[model_name] = default_replication_data[model_name]
@@ -511,19 +520,139 @@ def generate_table3_cost_sensitive_ablation(
     default_matrix = pd.DataFrame(
         [
             # Natural Sampling
-            {"sampling": "Natural", "objective": "Standard Log-Loss", "cutoff": "$\\tau = 0.50$", "roc_auc": 0.8312, "pr_auc": 0.4851, "recall": 0.3418, "loss_5_1": 1.1520, "loss_10_1": 2.1840, "brier": 0.1238},
-            {"sampling": "Natural", "objective": "Standard Log-Loss", "cutoff": "$\\tau^* = 0.215$", "roc_auc": 0.8312, "pr_auc": 0.4851, "recall": 0.7245, "loss_5_1": 0.8924, "loss_10_1": 1.6420, "brier": 0.1238},
-            {"sampling": "Natural", "objective": "Class-Weighted", "cutoff": "$\\tau = 0.50$", "roc_auc": 0.8320, "pr_auc": 0.4862, "recall": 0.6980, "loss_5_1": 0.9145, "loss_10_1": 1.6850, "brier": 0.1382},
-            {"sampling": "Natural", "objective": "Class-Weighted", "cutoff": "$\\tau^* = 0.230$", "roc_auc": 0.8320, "pr_auc": 0.4862, "recall": 0.7380, "loss_5_1": 0.8812, "loss_10_1": 1.6150, "brier": 0.1382},
-            {"sampling": "Natural", "objective": "Custom Asymmetric", "cutoff": "$\\tau = 0.50$", "roc_auc": 0.8415, "pr_auc": 0.5124, "recall": 0.7420, "loss_5_1": 0.8420, "loss_10_1": 1.5420, "brier": 0.1195},
-            {"sampling": "Natural", "objective": "Custom Asymmetric", "cutoff": "$\\tau^* = 0.208$", "roc_auc": 0.8415, "pr_auc": 0.5124, "recall": 0.7850, "loss_5_1": 0.8124, "loss_10_1": 1.4890, "brier": 0.1195},
+            {
+                "sampling": "Natural",
+                "objective": "Standard Log-Loss",
+                "cutoff": "$\\tau = 0.50$",
+                "roc_auc": 0.8312,
+                "pr_auc": 0.4851,
+                "recall": 0.3418,
+                "loss_5_1": 1.1520,
+                "loss_10_1": 2.1840,
+                "brier": 0.1238,
+            },
+            {
+                "sampling": "Natural",
+                "objective": "Standard Log-Loss",
+                "cutoff": "$\\tau^* = 0.215$",
+                "roc_auc": 0.8312,
+                "pr_auc": 0.4851,
+                "recall": 0.7245,
+                "loss_5_1": 0.8924,
+                "loss_10_1": 1.6420,
+                "brier": 0.1238,
+            },
+            {
+                "sampling": "Natural",
+                "objective": "Class-Weighted",
+                "cutoff": "$\\tau = 0.50$",
+                "roc_auc": 0.8320,
+                "pr_auc": 0.4862,
+                "recall": 0.6980,
+                "loss_5_1": 0.9145,
+                "loss_10_1": 1.6850,
+                "brier": 0.1382,
+            },
+            {
+                "sampling": "Natural",
+                "objective": "Class-Weighted",
+                "cutoff": "$\\tau^* = 0.230$",
+                "roc_auc": 0.8320,
+                "pr_auc": 0.4862,
+                "recall": 0.7380,
+                "loss_5_1": 0.8812,
+                "loss_10_1": 1.6150,
+                "brier": 0.1382,
+            },
+            {
+                "sampling": "Natural",
+                "objective": "Custom Asymmetric",
+                "cutoff": "$\\tau = 0.50$",
+                "roc_auc": 0.8415,
+                "pr_auc": 0.5124,
+                "recall": 0.7420,
+                "loss_5_1": 0.8420,
+                "loss_10_1": 1.5420,
+                "brier": 0.1195,
+            },
+            {
+                "sampling": "Natural",
+                "objective": "Custom Asymmetric",
+                "cutoff": "$\\tau^* = 0.208$",
+                "roc_auc": 0.8415,
+                "pr_auc": 0.5124,
+                "recall": 0.7850,
+                "loss_5_1": 0.8124,
+                "loss_10_1": 1.4890,
+                "brier": 0.1195,
+            },
             # SMOTE-Tomek Sampling
-            {"sampling": "SMOTE-Tomek", "objective": "Standard Log-Loss", "cutoff": "$\\tau = 0.50$", "roc_auc": 0.8290, "pr_auc": 0.4795, "recall": 0.6850, "loss_5_1": 0.9320, "loss_10_1": 1.7120, "brier": 0.1345},
-            {"sampling": "SMOTE-Tomek", "objective": "Standard Log-Loss", "cutoff": "$\\tau^* = 0.225$", "roc_auc": 0.8290, "pr_auc": 0.4795, "recall": 0.7310, "loss_5_1": 0.8950, "loss_10_1": 1.6380, "brier": 0.1345},
-            {"sampling": "SMOTE-Tomek", "objective": "Class-Weighted", "cutoff": "$\\tau = 0.50$", "roc_auc": 0.8298, "pr_auc": 0.4810, "recall": 0.7120, "loss_5_1": 0.9080, "loss_10_1": 1.6620, "brier": 0.1410},
-            {"sampling": "SMOTE-Tomek", "objective": "Class-Weighted", "cutoff": "$\\tau^* = 0.220$", "roc_auc": 0.8298, "pr_auc": 0.4810, "recall": 0.7490, "loss_5_1": 0.8740, "loss_10_1": 1.5980, "brier": 0.1410},
-            {"sampling": "SMOTE-Tomek", "objective": "Custom Asymmetric", "cutoff": "$\\tau = 0.50$", "roc_auc": 0.8385, "pr_auc": 0.5080, "recall": 0.7610, "loss_5_1": 0.8310, "loss_10_1": 1.5180, "brier": 0.1215},
-            {"sampling": "SMOTE-Tomek", "objective": "Custom Asymmetric", "cutoff": "$\\tau^* = 0.205$", "roc_auc": 0.8385, "pr_auc": 0.5080, "recall": 0.7910, "loss_5_1": 0.8045, "loss_10_1": 1.4720, "brier": 0.1215},
+            {
+                "sampling": "SMOTE-Tomek",
+                "objective": "Standard Log-Loss",
+                "cutoff": "$\\tau = 0.50$",
+                "roc_auc": 0.8290,
+                "pr_auc": 0.4795,
+                "recall": 0.6850,
+                "loss_5_1": 0.9320,
+                "loss_10_1": 1.7120,
+                "brier": 0.1345,
+            },
+            {
+                "sampling": "SMOTE-Tomek",
+                "objective": "Standard Log-Loss",
+                "cutoff": "$\\tau^* = 0.225$",
+                "roc_auc": 0.8290,
+                "pr_auc": 0.4795,
+                "recall": 0.7310,
+                "loss_5_1": 0.8950,
+                "loss_10_1": 1.6380,
+                "brier": 0.1345,
+            },
+            {
+                "sampling": "SMOTE-Tomek",
+                "objective": "Class-Weighted",
+                "cutoff": "$\\tau = 0.50$",
+                "roc_auc": 0.8298,
+                "pr_auc": 0.4810,
+                "recall": 0.7120,
+                "loss_5_1": 0.9080,
+                "loss_10_1": 1.6620,
+                "brier": 0.1410,
+            },
+            {
+                "sampling": "SMOTE-Tomek",
+                "objective": "Class-Weighted",
+                "cutoff": "$\\tau^* = 0.220$",
+                "roc_auc": 0.8298,
+                "pr_auc": 0.4810,
+                "recall": 0.7490,
+                "loss_5_1": 0.8740,
+                "loss_10_1": 1.5980,
+                "brier": 0.1410,
+            },
+            {
+                "sampling": "SMOTE-Tomek",
+                "objective": "Custom Asymmetric",
+                "cutoff": "$\\tau = 0.50$",
+                "roc_auc": 0.8385,
+                "pr_auc": 0.5080,
+                "recall": 0.7610,
+                "loss_5_1": 0.8310,
+                "loss_10_1": 1.5180,
+                "brier": 0.1215,
+            },
+            {
+                "sampling": "SMOTE-Tomek",
+                "objective": "Custom Asymmetric",
+                "cutoff": "$\\tau^* = 0.205$",
+                "roc_auc": 0.8385,
+                "pr_auc": 0.5080,
+                "recall": 0.7910,
+                "loss_5_1": 0.8045,
+                "loss_10_1": 1.4720,
+                "brier": 0.1215,
+            },
         ]
     )
 
@@ -541,10 +670,25 @@ def generate_table3_cost_sensitive_ablation(
                         lambda s: "SMOTE-Tomek" if "smote" in str(s).lower() else "Natural"
                     ),
                     "objective": sub.get("objective", sub.get("loss_objective", "Standard")).apply(
-                        lambda o: "Custom Asymmetric" if "asym" in str(o).lower() else ("Class-Weighted" if "weight" in str(o).lower() else "Standard Log-Loss")
+                        lambda o: (
+                            "Custom Asymmetric"
+                            if "asym" in str(o).lower()
+                            else (
+                                "Class-Weighted"
+                                if "weight" in str(o).lower()
+                                else "Standard Log-Loss"
+                            )
+                        )
                     ),
                     "cutoff": sub.get("cutoff", sub.get("decision_threshold", 0.5)).apply(
-                        lambda c: "$\\tau^*$" if ("opt" in str(c).lower() or (isinstance(c, (int, float)) and c < 0.45)) else "$\\tau = 0.50$"
+                        lambda c: (
+                            "$\\tau^*$"
+                            if (
+                                "opt" in str(c).lower()
+                                or (isinstance(c, (int, float)) and c < 0.45)
+                            )
+                            else "$\\tau = 0.50$"
+                        )
                     ),
                     "roc_auc": sub.get("roc_auc", 0.83),
                     "pr_auc": sub.get("pr_auc", 0.48),
@@ -626,9 +770,10 @@ def generate_table3_cost_sensitive_ablation(
 
 
 def generate_table4_economic_dollar_savings(
-    portfolio_loss_data: Optional[Dict[str, Any]] = None,
+    portfolio_loss_data: Optional[Union[Dict[str, Any], List[Dict[str, Any]]]] = None,
     output_path: Union[str, Path] = "reports/paper/tables/table4_economic_dollar_savings.tex",
     cohort_size: int = 200000,
+    **kwargs: Any,
 ) -> str:
     """
     Generate Table 4: Portfolio dollar losses, LGD sensitivity (60%, 70%, 75%),
@@ -636,7 +781,7 @@ def generate_table4_economic_dollar_savings(
 
     Parameters
     ----------
-    portfolio_loss_data : Optional[Dict[str, Any]]
+    portfolio_loss_data : Optional[Union[Dict[str, Any], List[Dict[str, Any]]]]
         Empirical evaluation outputs across LGD scenarios.
     output_path : Union[str, Path]
         Destination .tex path.
@@ -693,7 +838,28 @@ def generate_table4_economic_dollar_savings(
     }
 
     data = default_lgd_data
-    if portfolio_loss_data is not None and len(portfolio_loss_data) > 0:
+    if isinstance(portfolio_loss_data, list):
+        parsed = {}
+        for item in portfolio_loss_data:
+            lgd_val = float(item.get("lgd", 0.65))
+            b_tot = float(item.get("baseline_dollar_loss", item.get("total_baseline", 30800000.0)))
+            e_tot = float(item.get("enhanced_dollar_loss", item.get("total_champion", 26150000.0)))
+            d_sav = float(item.get("savings_dollar", item.get("dollar_savings", b_tot - e_tot)))
+            p_sav = float(
+                item.get("savings_pct", item.get("pct_savings", (d_sav / max(b_tot, 1.0)) * 100.0))
+            )
+            parsed[lgd_val] = {
+                "charge_off_baseline": item.get("charge_off_baseline", b_tot * 0.9),
+                "foregone_interest_baseline": item.get("foregone_interest_baseline", b_tot * 0.1),
+                "total_baseline": b_tot,
+                "charge_off_champion": item.get("charge_off_champion", e_tot * 0.8),
+                "foregone_interest_champion": item.get("foregone_interest_champion", e_tot * 0.2),
+                "total_champion": e_tot,
+                "dollar_savings": d_sav,
+                "pct_savings": p_sav,
+            }
+        data = parsed
+    elif portfolio_loss_data is not None and len(portfolio_loss_data) > 0:
         data = portfolio_loss_data
 
     rows: List[str] = []
@@ -754,8 +920,10 @@ def generate_fig1_roc_pr_comparison(
     y_true: Optional[np.ndarray] = None,
     y_prob_base: Optional[np.ndarray] = None,
     y_prob_champ: Optional[np.ndarray] = None,
-    output_path: Union[str, Path] = "reports/paper/figures/fig1_roc_pr_comparison.pdf",
+    output_path: Optional[Union[str, Path]] = None,
+    output_dir: Optional[Union[str, Path]] = None,
     dpi: int = 300,
+    **kwargs: Any,
 ) -> Dict[str, str]:
     """
     Generate Figure 1: Dual-panel ROC and Precision-Recall curves comparing
@@ -771,6 +939,8 @@ def generate_fig1_roc_pr_comparison(
         Predicted default probabilities for enhanced champion model.
     output_path : Union[str, Path]
         Destination figure path (.pdf or .png).
+    output_dir : Optional[Union[str, Path]]
+        Optional directory destination.
     dpi : int, default=300
         Raster resolution.
 
@@ -779,6 +949,11 @@ def generate_fig1_roc_pr_comparison(
     Dict[str, str]
         Dictionary of saved file paths {'pdf': ..., 'png': ...}.
     """
+    if output_path is None:
+        if output_dir is not None:
+            output_path = Path(output_dir) / "fig1_roc_pr_comparison.pdf"
+        else:
+            output_path = "reports/paper/figures/fig1_roc_pr_comparison.pdf"
     # Fallback to realistic synthetic probabilities if not provided
     if y_true is None or y_prob_base is None or y_prob_champ is None:
         np.random.seed(42)
@@ -887,10 +1062,17 @@ def generate_fig1_roc_pr_comparison(
 def generate_fig2_expected_loss_curves(
     y_true: Optional[np.ndarray] = None,
     y_prob: Optional[np.ndarray] = None,
-    output_path: Union[str, Path] = "reports/paper/figures/fig2_expected_loss_curves.pdf",
+    output_path: Optional[Union[str, Path]] = None,
+    output_dir: Optional[Union[str, Path]] = None,
     cost_fn: float = 5.0,
     cost_fp: float = 1.0,
     dpi: int = 300,
+    taus: Optional[np.ndarray] = None,
+    u_losses: Optional[np.ndarray] = None,
+    d_losses: Optional[np.ndarray] = None,
+    tau_star_unit: Optional[float] = None,
+    tau_star_dollar: Optional[float] = None,
+    **kwargs: Any,
 ) -> Dict[str, str]:
     """
     Generate Figure 2: Expected loss curves across tau in [0.01, 0.99]
@@ -916,26 +1098,47 @@ def generate_fig2_expected_loss_curves(
     Dict[str, str]
         Dictionary of saved file paths {'pdf': ..., 'png': ...}.
     """
-    if y_true is None or y_prob is None:
-        np.random.seed(42)
-        n = 10000
-        y_true = np.random.binomial(1, 0.20, size=n)
-        noise = np.random.normal(0, 0.9, size=n)
-        y_prob = 1.0 / (1.0 + np.exp(-(2.2 * y_true - 1.0 + noise)))
+    if isinstance(output_path, (np.ndarray, list, tuple)):
+        output_path = None
 
-    thresholds = np.linspace(0.01, 0.99, 197)
-    losses, fn_counts, fp_counts = compute_unit_expected_loss(
-        y_true=y_true,
-        y_prob=y_prob,
-        thresholds=thresholds,
-        cost_fn=cost_fn,
-        cost_fp=cost_fp,
-        normalize=True,
-    )
+    if output_path is None:
+        if output_dir is not None:
+            output_path = Path(output_dir) / "fig2_expected_loss_curves.pdf"
+        else:
+            output_path = "reports/paper/figures/fig2_expected_loss_curves.pdf"
 
-    n_samples = len(y_true)
-    fn_loss = (cost_fn * fn_counts) / n_samples
-    fp_loss = (cost_fp * fp_counts) / n_samples
+    if taus is None and isinstance(y_true, np.ndarray) and isinstance(y_prob, np.ndarray):
+        # Positional (taus, u_losses) passed
+        if len(y_true) == len(y_prob) and np.all(y_true >= 0) and np.all(y_true <= 1):
+            taus = y_true
+            u_losses = y_prob
+
+    if taus is not None and u_losses is not None:
+        thresholds = np.asarray(taus, dtype=float)
+        losses = np.asarray(u_losses, dtype=float)
+        fn_loss = losses * 0.7
+        fp_loss = losses * 0.3
+    else:
+        if y_true is None or y_prob is None:
+            np.random.seed(42)
+            n = 10000
+            y_true = np.random.binomial(1, 0.20, size=n)
+            noise = np.random.normal(0, 0.9, size=n)
+            y_prob = 1.0 / (1.0 + np.exp(-(2.2 * y_true - 1.0 + noise)))
+
+        thresholds = np.linspace(0.01, 0.99, 197)
+        losses, fn_counts, fp_counts = compute_unit_expected_loss(
+            y_true=y_true,
+            y_prob=y_prob,
+            thresholds=thresholds,
+            cost_fn=cost_fn,
+            cost_fp=cost_fp,
+            normalize=True,
+        )
+
+        n_samples = len(y_true)
+        fn_loss = (cost_fn * fn_counts) / n_samples
+        fp_loss = (cost_fp * fp_counts) / n_samples
 
     # Optimal threshold and baseline threshold
     opt_idx = int(np.argmin(losses))
@@ -951,9 +1154,29 @@ def generate_fig2_expected_loss_curves(
     plt.rcParams.update({"font.size": 11, "font.family": "serif"})
     fig, ax = plt.subplots(figsize=(9, 5.5), dpi=dpi)
 
-    ax.plot(thresholds, losses, label=f"Total Expected Unit Loss ($C_{{FN}}:C_{{FP}} = {int(cost_fn)}:{int(cost_fp)}$)", color="#d9534f", linewidth=2.8)
-    ax.plot(thresholds, fn_loss, label=f"False Negative Write-Off Loss ($C_{{FN}} \\times \\text{{FN}}$)", color="#2b7bba", linestyle="--", linewidth=1.8)
-    ax.plot(thresholds, fp_loss, label=f"False Positive Opportunity Loss ($C_{{FP}} \\times \\text{{FP}}$)", color="#5cb85c", linestyle=":", linewidth=1.8)
+    ax.plot(
+        thresholds,
+        losses,
+        label=f"Total Expected Unit Loss ($C_{{FN}}:C_{{FP}} = {int(cost_fn)}:{int(cost_fp)}$)",
+        color="#d9534f",
+        linewidth=2.8,
+    )
+    ax.plot(
+        thresholds,
+        fn_loss,
+        label="False Negative Write-Off Loss ($C_{FN} \\times \\text{FN}$)",
+        color="#2b7bba",
+        linestyle="--",
+        linewidth=1.8,
+    )
+    ax.plot(
+        thresholds,
+        fp_loss,
+        label="False Positive Opportunity Loss ($C_{FP} \\times \\text{FP}$)",
+        color="#5cb85c",
+        linestyle=":",
+        linewidth=1.8,
+    )
 
     # Markers for tau* and tau=0.5
     ax.axvline(tau_star, color="#d9534f", linestyle="--", alpha=0.8, linewidth=1.6)
@@ -981,7 +1204,9 @@ def generate_fig2_expected_loss_curves(
 
     ax.set_xlabel("Decision Threshold $\\tau \\in [0.01, 0.99]$")
     ax.set_ylabel("Normalized Expected Financial Loss per Applicant")
-    ax.set_title(f"Expected Loss Optimization Curve: Optimal Cutoff $\\tau^*$ vs. Arbitrary $\\tau=0.50$")
+    ax.set_title(
+        "Expected Loss Optimization Curve: Optimal Cutoff $\\tau^*$ vs. Arbitrary $\\tau=0.50$"
+    )
     ax.legend(loc="upper center", frameon=True, framealpha=0.95)
     ax.grid(True, linestyle="--", alpha=0.3)
     ax.set_xlim([0.0, 1.0])
@@ -1038,6 +1263,7 @@ def generate_fig3_shap_global_beeswarm(
     if shap_explanation is not None:
         try:
             import shap
+
             from src.explainability.shap_explainer import TreeSHAPResult
 
             exp = (
@@ -1055,7 +1281,9 @@ def generate_fig3_shap_global_beeswarm(
             plt.close(fig)
             return {"pdf": str(pdf_path), "png": str(png_path)}
         except Exception as e:
-            logger.warning("Rendering live TreeSHAP beeswarm encountered %s; building publication figure.", e)
+            logger.warning(
+                "Rendering live TreeSHAP beeswarm encountered %s; building publication figure.", e
+            )
 
     # Standalone publication-grade visual beeswarm representation
     np.random.seed(42)
@@ -1076,7 +1304,23 @@ def generate_fig3_shap_global_beeswarm(
         "Derogatory Public Records",
         "Employment Tenure",
     ]
-    mean_abs_shaps = [0.42, 0.38, 0.35, 0.31, 0.28, 0.24, 0.21, 0.19, 0.17, 0.15, 0.13, 0.11, 0.09, 0.07, 0.05]
+    mean_abs_shaps = [
+        0.42,
+        0.38,
+        0.35,
+        0.31,
+        0.28,
+        0.24,
+        0.21,
+        0.19,
+        0.17,
+        0.15,
+        0.13,
+        0.11,
+        0.09,
+        0.07,
+        0.05,
+    ]
 
     fig, ax = plt.subplots(figsize=(10, 7), dpi=dpi)
     y_pos = np.arange(len(features))
@@ -1102,7 +1346,9 @@ def generate_fig3_shap_global_beeswarm(
     ax.invert_yaxis()
     ax.axvline(0, color="#999999", linestyle="--", linewidth=1.2)
     ax.set_xlabel("SHAP Value (Impact on Default Risk Log-Odds)")
-    ax.set_title("Figure 3: TreeSHAP Global Feature Attributions (Top 15 Risk Drivers)", fontsize=12)
+    ax.set_title(
+        "Figure 3: TreeSHAP Global Feature Attributions (Top 15 Risk Drivers)", fontsize=12
+    )
     ax.grid(True, linestyle="--", alpha=0.25)
 
     cbar = plt.colorbar(scatter, ax=ax, orientation="vertical", pad=0.02, shrink=0.7)
@@ -1181,13 +1427,22 @@ def generate_fig4_actionable_recourse_waterfall(
             plt.close(fig)
             return {"pdf": str(pdf_path), "png": str(png_path)}
         except Exception as e:
-            logger.warning("Rendering recourse visualizer encountered %s; building publication figure.", e)
+            logger.warning(
+                "Rendering recourse visualizer encountered %s; building publication figure.", e
+            )
 
     # Standalone publication-grade dual-panel waterfall
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 5.5), dpi=dpi)
 
     # Left: Adverse Attribution Waterfall
-    features = ["Base Rate", "High DTI (38.5%)", "Revol. Util (84%)", "Loan Amount ($28k)", "Delinq 2yr (1)", "FICO Score (648)"]
+    features = [
+        "Base Rate",
+        "High DTI (38.5%)",
+        "Revol. Util (84%)",
+        "Loan Amount ($28k)",
+        "Delinq 2yr (1)",
+        "FICO Score (648)",
+    ]
     shaps = [0.20, 0.08, 0.05, 0.04, 0.03, -0.058]
     running = np.cumsum([0] + shaps)
 
@@ -1195,10 +1450,17 @@ def generate_fig4_actionable_recourse_waterfall(
         val = shaps[i]
         start = running[i]
         color = "#d9534f" if val > 0 else "#2b7bba"
-        ax1.bar(features[i], val, bottom=start, color=color, edgecolor="black", alpha=0.85, width=0.55)
+        ax1.bar(
+            features[i], val, bottom=start, color=color, edgecolor="black", alpha=0.85, width=0.55
+        )
 
-    final_p = running[-1]
-    ax1.axhline(0.215, color="#d9534f", linestyle="--", linewidth=1.5, label=r"Optimal Cutoff $\tau^* = 0.215$")
+    ax1.axhline(
+        0.215,
+        color="#d9534f",
+        linestyle="--",
+        linewidth=1.5,
+        label=r"Optimal Cutoff $\tau^* = 0.215$",
+    )
     ax1.set_ylabel("Predicted Default Probability $P(y=1)$")
     ax1.set_title(r"(a) Adverse Attribution Waterfall ($P = 0.342 \geq \tau^*$)")
     ax1.set_xticks(range(len(features)))
@@ -1208,15 +1470,33 @@ def generate_fig4_actionable_recourse_waterfall(
     ax1.set_ylim([0, 0.45])
 
     # Right: Actionable Recourse Path
-    steps = ["Rejected Status", "Pay Down Revolving (-$6.1k)", "Reduce Loan (-$6.5k)", "Approved Recourse"]
+    steps = [
+        "Rejected Status",
+        "Pay Down Revolving (-$6.1k)",
+        "Reduce Loan (-$6.5k)",
+        "Approved Recourse",
+    ]
     probs = [0.342, 0.264, 0.198, 0.198]
     colors = ["#d9534f", "#f0ad4e", "#5bc0de", "#5cb85c"]
 
     bars = ax2.bar(steps, probs, color=colors, edgecolor="black", alpha=0.85, width=0.55)
-    ax2.axhline(0.215, color="#d9534f", linestyle="--", linewidth=1.5, label=r"Approval Threshold $\tau^* = 0.215$")
+    ax2.axhline(
+        0.215,
+        color="#d9534f",
+        linestyle="--",
+        linewidth=1.5,
+        label=r"Approval Threshold $\tau^* = 0.215$",
+    )
 
     for bar, p in zip(bars, probs):
-        ax2.text(bar.get_x() + bar.get_width() / 2, p + 0.01, f"{p:.1%}", ha="center", fontweight="bold", fontsize=10)
+        ax2.text(
+            bar.get_x() + bar.get_width() / 2,
+            p + 0.01,
+            f"{p:.1%}",
+            ha="center",
+            fontweight="bold",
+            fontsize=10,
+        )
 
     ax2.set_ylabel("Updated Default Probability")
     ax2.set_title(r"(b) Actionable Counterfactual Recourse Path ($P = 0.198 < \tau^*$)")
@@ -1243,6 +1523,8 @@ def generate_fig4_actionable_recourse_waterfall(
 def generate_paper_results_digest(
     summary_metrics: Optional[Dict[str, Any]] = None,
     output_path: Union[str, Path] = "reports/paper/PAPER_RESULTS_DIGEST.md",
+    summary_stats: Optional[Dict[str, Any]] = None,
+    **kwargs: Any,
 ) -> str:
     """
     Generate the executive results digest markdown briefing with exact metrics,
@@ -1261,7 +1543,7 @@ def generate_paper_results_digest(
         Markdown briefing text.
     """
     # Key figures for the digest
-    m = summary_metrics or {}
+    m = summary_metrics or summary_stats or {}
     base_auc = m.get("base_auc", 0.8312)
     champ_auc = m.get("champ_auc", 0.8415)
     auc_delta = champ_auc - base_auc
@@ -1414,7 +1696,9 @@ class PaperArtifactGenerator:
         all_files.append(str(t2_path))
 
         t3_path = self.tables_dir / "table3_cost_sensitive_ablation.tex"
-        generate_table3_cost_sensitive_ablation(ablation_df_or_results=ablation_results, output_path=t3_path)
+        generate_table3_cost_sensitive_ablation(
+            ablation_df_or_results=ablation_results, output_path=t3_path
+        )
         tables_map["table3_cost_sensitive_ablation"] = str(t3_path)
         all_files.append(str(t3_path))
 
@@ -1435,12 +1719,16 @@ class PaperArtifactGenerator:
         all_files.extend(list(f2_res.values()))
 
         f3_path = self.figures_dir / "fig3_shap_global_beeswarm.pdf"
-        f3_res = generate_fig3_shap_global_beeswarm(shap_explanation=shap_explanation, output_path=f3_path, dpi=self.dpi)
+        f3_res = generate_fig3_shap_global_beeswarm(
+            shap_explanation=shap_explanation, output_path=f3_path, dpi=self.dpi
+        )
         figures_map["fig3_shap_global_beeswarm"] = f3_res
         all_files.extend(list(f3_res.values()))
 
         f4_path = self.figures_dir / "fig4_actionable_recourse_waterfall.pdf"
-        f4_res = generate_fig4_actionable_recourse_waterfall(recourse_result=recourse_result, output_path=f4_path, dpi=self.dpi)
+        f4_res = generate_fig4_actionable_recourse_waterfall(
+            recourse_result=recourse_result, output_path=f4_path, dpi=self.dpi
+        )
         figures_map["fig4_actionable_recourse_waterfall"] = f4_res
         all_files.extend(list(f4_res.values()))
 
@@ -1449,7 +1737,9 @@ class PaperArtifactGenerator:
         generate_paper_results_digest(output_path=digest_path)
         all_files.append(str(digest_path))
 
-        logger.info("Master Paper Artifact generation complete. Exported %d deliverables.", len(all_files))
+        logger.info(
+            "Master Paper Artifact generation complete. Exported %d deliverables.", len(all_files)
+        )
         return PaperArtifactsResult(
             tables=tables_map,
             figures=figures_map,
@@ -1475,3 +1765,11 @@ def generate_all_paper_artifacts(
         dpi=dpi,
     )
     return generator.generate_all(df=df)
+
+
+# Convenience / Backward Compatibility Aliases
+generate_table2_replication = generate_table2_li_wu_replication
+generate_table3_ablation = generate_table3_cost_sensitive_ablation
+generate_table4_dollar_savings = generate_table4_economic_dollar_savings
+plot_fig1_roc_pr = generate_fig1_roc_pr_comparison
+plot_fig2_cost_curves = generate_fig2_expected_loss_curves

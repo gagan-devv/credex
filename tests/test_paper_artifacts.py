@@ -10,15 +10,13 @@ Verifies:
 """
 
 from pathlib import Path
-import tempfile
-import numpy as np
+
 import pandas as pd
 import pytest
 
 from src.data.loader import generate_synthetic_lending_club
 from src.evaluation.paper_artifacts import (
     PaperArtifactGenerator,
-    generate_all_paper_artifacts,
     generate_fig1_roc_pr_comparison,
     generate_fig2_expected_loss_curves,
     generate_fig3_shap_global_beeswarm,
@@ -30,7 +28,6 @@ from src.evaluation.paper_artifacts import (
     generate_table4_economic_dollar_savings,
     validate_latex_table,
 )
-from src.models.baselines import BASELINE_MODEL_NAMES
 
 
 @pytest.fixture
