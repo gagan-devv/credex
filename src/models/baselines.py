@@ -198,6 +198,8 @@ def _create_raw_estimator(model_name: str, params: Dict[str, Any]) -> BaseEstima
             )
         if "random_state" in p and "random_seed" in p:
             del p["random_seed"]
+        if "train_dir" not in p:
+            p["train_dir"] = "/tmp/catboost_info"
         return CatBoostClassifier(**p)
 
     elif name_clean == "mlp":

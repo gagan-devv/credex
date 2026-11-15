@@ -42,7 +42,10 @@ class CreditDataPreprocessor(BaseEstimator, TransformerMixin):
         winsorize_quantile: float = 0.995,
         scale_numerical: bool = True,
         return_df: bool = True,
+        numerical_cols: Optional[List[str]] = None,
     ):
+        if numerical_features is None and numerical_cols is not None:
+            numerical_features = numerical_cols
         self.numerical_features = numerical_features
         self.categorical_features = categorical_features
         self.winsorize_features = winsorize_features

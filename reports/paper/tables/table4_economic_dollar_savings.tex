@@ -1,0 +1,19 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Portfolio Dollar Credit Losses and Economic Savings across LGD Scenarios}
+\label{tab:dollar_savings}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+\textbf{LGD Scenario} & \textbf{Li \& Wu Loss (\$)} & \textbf{Credex Loss (\$)} & \textbf{Savings (\$)} & \textbf{Savings (\%)} \\
+\midrule
+60\% & \$28,450,000 & \$24,200,000 & \textbf{\$4,250,000} & \textbf{14.9\%} \\
+65\% & \$30,800,000 & \$26,150,000 & \textbf{\$4,650,000} & \textbf{15.1\%} \\
+75\% & \$35,500,000 & \$30,100,000 & \textbf{\$5,400,000} & \textbf{15.2\%} \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}
+\footnotesize
+\item Note: Portfolio dollar loss incorporates principal write-off severity ($LGD \times \text{loan\_amount}$) and net interest margin foregone ($NIM = 3.5\%$) evaluated on holdout vintage test set.
+\end{tablenotes}
+\end{table}

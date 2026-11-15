@@ -520,6 +520,7 @@ class CostSensitiveCatBoostClassifier(BaseEstimator, ClassifierMixin):
             "loss_function": custom_obj,
             "eval_metric": self.eval_metric,
             "verbose": self.verbose,
+            "train_dir": "/tmp/catboost_info",
             **self.kwargs,
         }
 

@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\small
+\caption{Descriptive Statistics of Key Credit Predictors by Terminal Loan Status}
+\label{tab:descriptive_stats}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccccc@{}}
+\toprule
+\textbf{Variable} & \multicolumn{2}{c}{\textbf{Fully Paid ($Y=0$)}} & \multicolumn{2}{c}{\textbf{Default ($Y=1$)}} & \textbf{$t$-stat} & \textbf{$p$-value} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5}
+& \textbf{Mean} & \textbf{SD} & \textbf{Mean} & \textbf{SD} & & \\
+\midrule
+Debt To Income & 23.19 & 11.37 & 29.72 & 10.87 & 7.97 & < 0.001*** \\
+Annual Income & 66052.51 & 34924.40 & 68555.17 & 34530.59 & 0.97 & 0.333 \\
+Loan Amount & 20550.36 & 11371.02 & 20904.94 & 11074.54 & 0.43 & 0.670 \\
+Installment & 600.63 & 315.83 & 610.69 & 307.96 & 0.44 & 0.664 \\
+Fico Score & 735.17 & 70.58 & 696.81 & 67.42 & -7.54 & < 0.001*** \\
+Delinq 2Yrs & 0.25 & 0.49 & 0.34 & 0.57 & 2.13 & 0.034 \\
+Revol Utilization & 47.80 & 28.68 & 52.83 & 27.53 & 2.43 & 0.016 \\
+\bottomrule
+\end{tabular*}
+\begin{tablenotes}
+\footnotesize
+\item Note: Sample consists of completed loan contracts. Two-sample Welch's $t$-test evaluated. *** $p < 0.001$.
+\end{tablenotes}
+\end{table}
