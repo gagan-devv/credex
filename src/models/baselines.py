@@ -196,6 +196,8 @@ def _create_raw_estimator(model_name: str, params: Dict[str, Any]) -> BaseEstima
                 "catboost is not installed or failed to import. "
                 "Please ensure catboost>=1.2.0 is available in your environment."
             )
+        if "random_state" in p and "random_seed" in p:
+            del p["random_seed"]
         return CatBoostClassifier(**p)
 
     elif name_clean == "mlp":
@@ -254,6 +256,10 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
         res = {"model_name": self.model_name}
         res.update(self.params)
         return res
+
+    def __sklearn_clone__(self) -> "BaselineModel":
+        """Support scikit-learn clone() without requiring rigid constructor args."""
+        return BaselineModel(model_name=self.model_name, **copy.deepcopy(self.params))
 
     def set_params(self, **params: Any) -> "BaselineModel":
         """Set the parameters of this estimator."""
