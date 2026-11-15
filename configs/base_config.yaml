@@ -1,0 +1,27 @@
+# Base Project Configuration
+project_name: "credex"
+random_seed: 42
+
+# Data Paths & Sample Sizes
+data:
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  lending_club_path: "data/raw/lending_club_loans.csv"
+  german_credit_path: "data/raw/south_german_credit.csv"
+  
+  # Dual-Scale Execution
+  sample_size: 200000          # Rapid development cohort
+  use_full_dataset: false      # Toggle for complete 1.3M+ historical cohort
+  target_column: "loan_status" # 1 = Default/Charged-Off, 0 = Fully Paid
+
+# Validation Partitioning
+validation:
+  n_splits: 5                  # Stratified 5-Fold Cross-Validation
+  shuffle: true
+  
+  # Out-of-Time (OOT) Macroeconomic Holdout
+  use_oot: true
+  train_vintage_start: "2012-01-01"
+  train_vintage_end: "2016-12-31"
+  test_vintage_start: "2017-01-01"
+  test_vintage_end: "2018-12-31"

@@ -1,0 +1,31 @@
+# Cost Matrix & Economic Loss Configuration
+
+# Standardized Unit Misclassification Penalties (C_FN : C_FP)
+unit_penalties:
+  benchmark_5_to_1:
+    cost_fp: 1.0    # Cost of erroneously denying creditworthy borrower
+    cost_fn: 5.0    # Cost of approving a borrower who defaults (South German benchmark)
+    ratio: 5.0
+
+  stress_10_to_1:
+    cost_fp: 1.0
+    cost_fn: 10.0   # Stress-testing scenario for high-loss retail credit
+    ratio: 10.0
+
+# Instance-Dependent Portfolio Dollar Loss Parameters
+portfolio_loss:
+  # Loss Given Default (LGD) parameterization
+  lgd_baseline: 0.65       # Central empirical estimate from LendingClub charge-off data
+  lgd_scenarios: [0.60, 0.70, 0.75]
+
+  # Net Interest Margin (NIM)
+  net_interest_margin: 0.035  # 3.5% annualized net interest margin
+
+  # Default Recovery Rate: 1 - LGD
+  recovery_rate: 0.35
+
+# Threshold Sweep Parameters
+threshold_sweep:
+  min_tau: 0.01
+  max_tau: 0.99
+  step_size: 0.005

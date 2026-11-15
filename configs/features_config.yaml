@@ -1,0 +1,54 @@
+# Features Configuration
+
+# Li & Wu (2024) Baseline Feature Set (~15 features reproducing Table 2)
+feature_set_baseline:
+  numerical:
+    - "debt_to_income"         # dti: Total monthly debt payments / gross monthly income
+    - "annual_income"          # Annual income buffer
+    - "loan_amount"            # Principal amount requested
+    - "installment"            # Scheduled monthly payment
+    - "interest_rate"          # Platform assigned rate (endogenous)
+    - "fico_score"             # Baseline credit score
+    - "delinq_2yrs"            # 30+ day delinquencies in last 2 years
+    - "revol_utilization"      # Revolving line utilization percentage
+    - "inq_last_6mths"         # Hard inquiries in last 6 months
+    - "open_acc"               # Number of open credit lines
+    - "pub_rec"                # Number of derogatory public records
+    - "revol_bal"              # Total credit revolving balance
+    - "total_acc"              # Total credit lines in history
+    - "emp_length"             # Employment length in years
+  categorical:
+    - "home_ownership"         # RENT, OWN, MORTGAGE, OTHER
+    - "term"                   # 36 months vs 60 months
+    - "grade"                  # A, B, C, D, E, F, G (endogenous)
+    - "sub_grade"              # A1-G5 (endogenous)
+
+# Enhanced Feature Set: Novel Solvency Ratios & Endogeneity Ablation Toggle
+feature_set_enhanced:
+  engineered_ratios:
+    - "payment_to_income"      # installment / (annual_income / 12)
+    - "loan_to_income"         # loan_amount / annual_income
+    - "liquidity_buffer"       # total_rev_hi_lim - revol_bal
+    - "delinquency_velocity"   # delinq_2yrs / total_acc
+
+  # Endogeneity Toggle: Set to false to isolate intrinsic creditworthiness
+  include_pricing_features: false
+  pricing_features:
+    - "interest_rate"
+    - "grade"
+    - "sub_grade"
+
+# Feature Mutability Schema for Counterfactual Recourse
+mutability:
+  mutable:
+    - "loan_amount"
+    - "revol_utilization"
+    - "revol_bal"
+    - "installment"
+  immutable:
+    - "delinq_2yrs"
+    - "inq_last_6mths"
+    - "pub_rec"
+    - "total_acc"
+    - "emp_length"
+    - "fico_score"
