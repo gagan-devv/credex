@@ -161,6 +161,7 @@ def generate_table1_descriptive_stats(
     output_path: Union[str, Path] = "reports/paper/tables/table1_descriptive_stats.tex",
     target_col: str = "loan_status",
     features: Optional[List[str]] = None,
+    feature_cols: Optional[List[str]] = None,
 ) -> str:
     """
     Generate Table 1: Summary descriptive statistics and two-sample t-test / Mann-Whitney
@@ -176,14 +177,20 @@ def generate_table1_descriptive_stats(
         Binary target column.
     features : Optional[List[str]]
         List of continuous feature names.
+    feature_cols : Optional[List[str]]
+        Alias for features.
 
     Returns
     -------
     str
         Generated LaTeX string.
     """
+    if features is None and feature_cols is not None:
+        features = feature_cols
+
     if df is None:
         df = generate_synthetic_lending_club(n_samples=2000, random_state=42)
+
 
     # Resolve features to report
     if features is None:
@@ -398,14 +405,25 @@ def generate_table2_li_wu_replication(
     for model_name in BASELINE_MODEL_NAMES:
         if results_or_summary and model_name in results_or_summary:
             entry = results_or_summary[model_name]
-            summary = entry.get("summary", entry)
+            summary = entry.get("summary", entry) if isinstance(entry, dict) else entry
+
+            def _extract_num(v: Any, default: float) -> float:
+                if isinstance(v, dict):
+                    return float(v.get("mean", default))
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    return default
+
             parsed_metrics[model_name] = {
-                "roc_auc": float(summary.get("roc_auc", {}).get("mean", summary.get("roc_auc", 0.0))),
-                "accuracy": float(summary.get("accuracy", {}).get("mean", summary.get("accuracy", 0.0))),
-                "precision": float(summary.get("precision", {}).get("mean", summary.get("precision", 0.0))),
-                "recall": float(summary.get("recall", {}).get("mean", summary.get("recall", 0.0))),
-                "f1": float(summary.get("f1", {}).get("mean", summary.get("f1", 0.0))),
-                "brier": float(summary.get("brier_score", {}).get("mean", summary.get("brier", 0.15))),
+                "roc_auc": _extract_num(summary.get("roc_auc") if isinstance(summary, dict) else 0.0, 0.0),
+                "accuracy": _extract_num(summary.get("accuracy") if isinstance(summary, dict) else 0.0, 0.0),
+                "precision": _extract_num(summary.get("precision") if isinstance(summary, dict) else 0.0, 0.0),
+                "recall": _extract_num(summary.get("recall") if isinstance(summary, dict) else 0.0, 0.0),
+                "f1": _extract_num(summary.get("f1") if isinstance(summary, dict) else 0.0, 0.0),
+                "brier": _extract_num(
+                    summary.get("brier_score", summary.get("brier")) if isinstance(summary, dict) else 0.15, 0.15
+                ),
             }
         else:
             parsed_metrics[model_name] = default_replication_data[model_name]
@@ -694,7 +712,13 @@ def generate_table4_economic_dollar_savings(
 
     data = default_lgd_data
     if portfolio_loss_data is not None and len(portfolio_loss_data) > 0:
-        data = portfolio_loss_data
+        if isinstance(portfolio_loss_data, list):
+            data = {float(row.get("lgd", i)): row for i, row in enumerate(portfolio_loss_data)}
+        elif isinstance(portfolio_loss_data, dict):
+            data = portfolio_loss_data
+        elif hasattr(portfolio_loss_data, "to_dict"):
+            data = {float(r.get("lgd", i)): r for i, r in enumerate(portfolio_loss_data.to_dict(orient="records"))}
+
 
     rows: List[str] = []
 
@@ -756,6 +780,9 @@ def generate_fig1_roc_pr_comparison(
     y_prob_champ: Optional[np.ndarray] = None,
     output_path: Union[str, Path] = "reports/paper/figures/fig1_roc_pr_comparison.pdf",
     dpi: int = 300,
+    output_dir: Optional[Union[str, Path]] = None,
+    *args,
+    **kwargs,
 ) -> Dict[str, str]:
     """
     Generate Figure 1: Dual-panel ROC and Precision-Recall curves comparing
@@ -779,6 +806,9 @@ def generate_fig1_roc_pr_comparison(
     Dict[str, str]
         Dictionary of saved file paths {'pdf': ..., 'png': ...}.
     """
+    if output_dir is not None:
+        output_path = Path(output_dir) / "fig1_roc_pr_comparison.pdf"
+
     # Fallback to realistic synthetic probabilities if not provided
     if y_true is None or y_prob_base is None or y_prob_champ is None:
         np.random.seed(42)
@@ -891,6 +921,9 @@ def generate_fig2_expected_loss_curves(
     cost_fn: float = 5.0,
     cost_fp: float = 1.0,
     dpi: int = 300,
+    output_dir: Optional[Union[str, Path]] = None,
+    *args,
+    **kwargs,
 ) -> Dict[str, str]:
     """
     Generate Figure 2: Expected loss curves across tau in [0.01, 0.99]
@@ -916,6 +949,9 @@ def generate_fig2_expected_loss_curves(
     Dict[str, str]
         Dictionary of saved file paths {'pdf': ..., 'png': ...}.
     """
+    if output_dir is not None:
+        output_path = Path(output_dir) / "fig2_expected_loss_curves.pdf"
+
     if y_true is None or y_prob is None:
         np.random.seed(42)
         n = 10000
@@ -1243,6 +1279,9 @@ def generate_fig4_actionable_recourse_waterfall(
 def generate_paper_results_digest(
     summary_metrics: Optional[Dict[str, Any]] = None,
     output_path: Union[str, Path] = "reports/paper/PAPER_RESULTS_DIGEST.md",
+    summary_stats: Optional[Dict[str, Any]] = None,
+    *args,
+    **kwargs,
 ) -> str:
     """
     Generate the executive results digest markdown briefing with exact metrics,
@@ -1254,12 +1293,16 @@ def generate_paper_results_digest(
         Empirical metrics summary dictionary.
     output_path : Union[str, Path]
         Destination markdown path.
+    summary_stats : Optional[Dict[str, Any]]
+        Alias for summary_metrics.
 
     Returns
     -------
     str
         Markdown briefing text.
     """
+    if summary_metrics is None and summary_stats is not None:
+        summary_metrics = summary_stats
     # Key figures for the digest
     m = summary_metrics or {}
     base_auc = m.get("base_auc", 0.8312)
@@ -1475,3 +1518,13 @@ def generate_all_paper_artifacts(
         dpi=dpi,
     )
     return generator.generate_all(df=df)
+
+
+# Convenience aliases for backwards compatibility
+generate_table2_replication = generate_table2_li_wu_replication
+generate_table3_ablation = generate_table3_cost_sensitive_ablation
+generate_table4_dollar_savings = generate_table4_economic_dollar_savings
+plot_fig1_roc_pr = generate_fig1_roc_pr_comparison
+plot_fig2_cost_curves = generate_fig2_expected_loss_curves
+
+

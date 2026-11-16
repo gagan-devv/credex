@@ -36,6 +36,8 @@ from src.evaluation.paper_artifacts import (
     generate_table4_dollar_savings,
     plot_fig1_roc_pr,
     plot_fig2_cost_curves,
+    generate_fig3_shap_global_beeswarm,
+    generate_fig4_actionable_recourse_waterfall,
     generate_paper_results_digest,
 )
 
@@ -80,9 +82,10 @@ def cmd_replicate_paper(args: argparse.Namespace) -> None:
 
     logger.info("=== Baseline Replication Summary ===")
     for m_name, res in results.items():
-        auc_val = res["roc_auc"]["mean"] if isinstance(res.get("roc_auc"), dict) else res.get("roc_auc", 0.0)
-        acc_val = res["accuracy"]["mean"] if isinstance(res.get("accuracy"), dict) else res.get("accuracy", 0.0)
-        f1_val = res["f1"]["mean"] if isinstance(res.get("f1"), dict) else res.get("f1", 0.0)
+        summary = res.get("summary", res) if isinstance(res, dict) else res
+        auc_val = summary["roc_auc"]["mean"] if isinstance(summary.get("roc_auc"), dict) else summary.get("roc_auc", 0.0)
+        acc_val = summary["accuracy"]["mean"] if isinstance(summary.get("accuracy"), dict) else summary.get("accuracy", 0.0)
+        f1_val = summary["f1"]["mean"] if isinstance(summary.get("f1"), dict) else summary.get("f1", 0.0)
         logger.info("%-20s: ROC-AUC = %.3f | Accuracy = %.3f | F1 = %.3f", m_name, auc_val, acc_val, f1_val)
 
 
@@ -157,6 +160,9 @@ def cmd_export_paper(args: argparse.Namespace) -> None:
     }
     generate_table2_replication(dummy_baseline, output_path=tables_dir / "table2_li_wu_replication.tex")
 
+    # Table 3: Cost-Sensitive Factorial Ablation
+    generate_table3_ablation(output_path=tables_dir / "table3_cost_sensitive_ablation.tex")
+
     # Table 4: Dollar Savings
     savings_data = [
         {"lgd": 0.60, "baseline_dollar_loss": 28450000.0, "enhanced_dollar_loss": 24200000.0, "savings_dollar": 4250000.0, "savings_pct": 14.9},
@@ -175,6 +181,9 @@ def cmd_export_paper(args: argparse.Namespace) -> None:
     u_losses = 2.0 * (taus - 0.22)**2 + 0.35
     d_losses = 1e7 * ((taus - 0.20)**2 + 0.05)
     plot_fig2_cost_curves(taus, u_losses, d_losses, tau_star_unit=0.22, tau_star_dollar=0.20, output_dir=figures_dir)
+
+    generate_fig3_shap_global_beeswarm(output_path=figures_dir / "fig3_shap_global_beeswarm.pdf")
+    generate_fig4_actionable_recourse_waterfall(output_path=figures_dir / "fig4_actionable_recourse_waterfall.pdf")
 
     # Results Digest
     generate_paper_results_digest(
