@@ -53,10 +53,10 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `Dockerfile`: Multi-stage Python 3.10+ Linux container with `uv` for reproducible execution on cloud/Kaggle compute.
   - `Makefile`: Targets for `install`, `lint`, `test`, `docker-build`, `clean`.
 - **Acceptance Criteria:**
-  - [ ] `uv venv` creates clean virtual environment and installs all dependencies in $< 15$ seconds.
-  - [ ] `pip install -e .` succeeds in Python 3.10+.
-  - [ ] `docker build -t credex:latest .` successfully builds image.
-  - [ ] Unit test: Verify package importability `import src; assert src.__version__`.
+  - [x] `uv venv` creates clean virtual environment and installs all dependencies in $< 15$ seconds.
+  - [x] `pip install -e .` succeeds in Python 3.10+.
+  - [x] `docker build -t credex:latest .` successfully builds image.
+  - [x] Unit test: Verify package importability `import src; assert src.__version__`.
 
 ### CREDEX-02: Base Config Schemas & Pydantic Validation
 - **Branch:** `lane-a/config-schemas`
@@ -69,8 +69,8 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `configs/cost_matrix.yaml`: Penalty ratios ($5:1, 10:1$), LGD ($0.60–0.75$), NIM ($0.035$).
   - `src/config.py`: Pydantic V2 models (`BaseConfig`, `FeatureConfig`, `ModelConfig`, `CostMatrixConfig`) with YAML loaders.
 - **Acceptance Criteria:**
-  - [ ] Invalid YAML values (e.g. negative costs, invalid ratios) raise descriptive Pydantic validation errors.
-  - [ ] Unit & Property tests: Validate that configuration loader parses defaults, overrides, and environment variables idempotently.
+  - [x] Invalid YAML values (e.g. negative costs, invalid ratios) raise descriptive Pydantic validation errors.
+  - [x] Unit & Property tests: Validate that configuration loader parses defaults, overrides, and environment variables idempotently.
 
 ### CREDEX-03: Testing Harness & Property-Based Test Infrastructure
 - **Branch:** `lane-a/test-harness`
@@ -80,8 +80,8 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `tests/conftest.py`: Reusable fixtures for synthetic credit data (LendingClub schema and South German Credit schema).
   - Hypothesis custom strategies for generating realistic credit applicant profiles (`dti`, `annual_income`, `loan_amount`, `delinq_2yrs`).
 - **Acceptance Criteria:**
-  - [ ] `pytest tests/` runs cleanly with zero failures.
-  - [ ] Property test: Generated synthetic datasets satisfy economic invariants (income $> 0$, utilization $\in [0, 100\%]$).
+  - [x] `pytest tests/` runs cleanly with zero failures.
+  - [x] Property test: Generated synthetic datasets satisfy economic invariants (income $> 0$, utilization $\in [0, 100\%]$).
 
 ---
 
@@ -96,9 +96,9 @@ This document defines the complete engineering tickets for the **Credex Platform
   - Dual-mode support: Deterministic stratified sampling of 200,000 completed loans (for fast tuning) vs. full 1.3M+ dataset (`--full-dataset`).
   - Target filtering: Isolates completed contracts (`loan_status` $\in$ {`Fully Paid` $\rightarrow 0$, `Charged Off` / `Default` $\rightarrow 1$}), rejecting active/late loans.
 - **Acceptance Criteria:**
-  - [ ] Loads and validates raw CSV / parquet inputs against schema.
-  - [ ] Unit tests: Validate correct binary target mapping and sample size stratification.
-  - [ ] Property test: Target class distribution in sample matches population within $\pm 0.5\%$.
+  - [x] Loads and validates raw CSV / parquet inputs against schema.
+  - [x] Unit tests: Validate correct binary target mapping and sample size stratification.
+  - [x] Property test: Target class distribution in sample matches population within $\pm 0.5\%$.
 
 ### CREDEX-05: Out-of-Fold Preprocessing & Financial Winsorization
 - **Branch:** `lane-b/data-preprocessor`
@@ -109,9 +109,9 @@ This document defines the complete engineering tickets for the **Credex Platform
   - Financial winsorization at the 99.5th percentile for extreme values (`annual_income`, `revol_bal`, `dti`).
   - Categorical encoders (One-Hot / Target encoding with out-of-fold regularization).
 - **Acceptance Criteria:**
-  - [ ] No test data leakage during fit/transform operations.
-  - [ ] Winsorization caps outliers at the exact training 99.5th percentile without modifying normal values.
-  - [ ] Unit & Property tests: Test transform output dimensions, no NaN values remaining, and bounded variances.
+  - [x] No test data leakage during fit/transform operations.
+  - [x] Winsorization caps outliers at the exact training 99.5th percentile without modifying normal values.
+  - [x] Unit & Property tests: Test transform output dimensions, no NaN values remaining, and bounded variances.
 
 ### CREDEX-06: Dual Feature Regimes & Endogeneity Isolation
 - **Branch:** `lane-b/feature-engineering`
@@ -125,8 +125,8 @@ This document defines the complete engineering tickets for the **Credex Platform
     - Delinquency Velocity: $\text{delinq\_2yrs} / \text{total\_acc}$
     - Toggle `include_pricing_features: false` purging `interest_rate`, `grade`, `sub_grade`.
 - **Acceptance Criteria:**
-  - [ ] Correct mathematical calculation of all 4 solvency ratios with division-by-zero guards.
-  - [ ] Unit & Property tests: Assert that disabling pricing features removes all lender-assigned grading columns.
+  - [x] Correct mathematical calculation of all 4 solvency ratios with division-by-zero guards.
+  - [x] Unit & Property tests: Assert that disabling pricing features removes all lender-assigned grading columns.
 
 ### CREDEX-07: Partitioning Engine & Target Leakage Prevention
 - **Branch:** `lane-b/partition-leakage`
@@ -136,9 +136,9 @@ This document defines the complete engineering tickets for the **Credex Platform
   - Partitioning module splitting development cohort (2012–2016) and OOT validation holdout (2017–2018).
   - `tests/test_data_leakage.py`: Comprehensive test verifying zero post-origination columns (`recoveries`, `collection_recovery_fee`, `last_pymnt_amnt`) appear in predictor matrix.
 - **Acceptance Criteria:**
-  - [ ] Stratified 5-fold splits maintain identical default rates across all folds.
-  - [ ] OOT split contains zero temporal overlap between train and test dates.
-  - [ ] Automated leakage unit tests pass with 100% assertions satisfied.
+  - [x] Stratified 5-fold splits maintain identical default rates across all folds.
+  - [x] OOT split contains zero temporal overlap between train and test dates.
+  - [x] Automated leakage unit tests pass with 100% assertions satisfied.
 
 ---
 
@@ -160,8 +160,8 @@ This document defines the complete engineering tickets for the **Credex Platform
     8. CatBoost
     9. Multilayer Perceptron (MLP)
 - **Acceptance Criteria:**
-  - [ ] All 9 models train and predict probabilities via a standard scikit-learn compatible estimator API.
-  - [ ] Unit tests: Verify `fit()`, `predict_proba()`, and `predict()` across all 9 algorithms on synthetic and real sample splits.
+  - [x] All 9 models train and predict probabilities via a standard scikit-learn compatible estimator API.
+  - [x] Unit tests: Verify `fit()`, `predict_proba()`, and `predict()` across all 9 algorithms on synthetic and real sample splits.
 
 ### CREDEX-09: Probability Calibration & Table 2 Benchmark Reproduction
 - **Branch:** `lane-c/calibration-benchmark`
@@ -171,9 +171,9 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `src/models/calibration.py`: Out-of-fold probability calibrator with Brier score evaluation.
   - Baseline verification script verifying Random Forest achieves ROC-AUC $\approx 0.835$ and LightGBM $\approx 0.831$.
 - **Acceptance Criteria:**
-  - [ ] Calibrated probabilities monotonically align with empirical default frequencies.
-  - [ ] Baseline replication logs match published Table 2 metrics within expected empirical confidence bounds.
-  - [ ] Unit & Property tests: Assert calibrated probabilities remain strictly within $[0, 1]$.
+  - [x] Calibrated probabilities monotonically align with empirical default frequencies.
+  - [x] Baseline replication logs match published Table 2 metrics within expected empirical confidence bounds.
+  - [x] Unit & Property tests: Assert calibrated probabilities remain strictly within $[0, 1]$.
 
 ---
 
@@ -189,9 +189,9 @@ This document defines the complete engineering tickets for the **Credex Platform
     - Second derivative: $h_i = p_i (1 - p_i) (1 + (w - 1) y_i)$ with Hessian damping $\epsilon = 10^{-6}$.
   - `tests/test_gradients.py`: Finite-difference numerical gradient verification and Hypothesis property tests.
 - **Acceptance Criteria:**
-  - [ ] Analytical gradients match numerical finite-difference approximations within tolerance $|g_{\text{analytical}} - g_{\text{numerical}}| < 10^{-5}$.
-  - [ ] Property test: For $w=1$, gradients exactly match standard binary cross-entropy loss derivatives.
-  - [ ] Second-order Hessians are strictly positive ($h_i > 0$) across all inputs, preventing tree optimizer divergence.
+  - [x] Analytical gradients match numerical finite-difference approximations within tolerance $|g_{\text{analytical}} - g_{\text{numerical}}| < 10^{-5}$.
+  - [x] Property test: For $w=1$, gradients exactly match standard binary cross-entropy loss derivatives.
+  - [x] Second-order Hessians are strictly positive ($h_i > 0$) across all inputs, preventing tree optimizer divergence.
 
 ### CREDEX-11: Cost-Sensitive Gradient Boosted Ensembles
 - **Branch:** `lane-d/cost-sensitive-models`
@@ -200,8 +200,8 @@ This document defines the complete engineering tickets for the **Credex Platform
 - **Deliverables:**
   - `src/models/cost_sensitive.py`: Cost-sensitive wrappers injecting custom objective functions into LightGBM (`fobj`), XGBoost (`objective`), and CatBoost.
 - **Acceptance Criteria:**
-  - [ ] Tree models train smoothly with custom objectives without NaN loss or gradient explosion.
-  - [ ] Unit tests: Verify cost-sensitive models produce higher recall on default cases compared to standard log-loss models.
+  - [x] Tree models train smoothly with custom objectives without NaN loss or gradient explosion.
+  - [x] Unit tests: Verify cost-sensitive models produce higher recall on default cases compared to standard log-loss models.
 
 ### CREDEX-12: Economic Loss Threshold Optimizer (Unit & Portfolio Dollar Loss)
 - **Branch:** `lane-d/threshold-optimizer`
@@ -211,8 +211,8 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `src/models/threshold_optimizer.py`: Vectorized expected loss calculation and optimal $\tau^*$ identification.
   - `tests/test_threshold_optimizer.py`: Unit and property tests verifying loss convex-curve minimums.
 - **Acceptance Criteria:**
-  - [ ] Optimal $\tau^*$ under $C_{FN}:C_{FP} = 5:1$ is strictly less than 0.50 (typically $\tau^* \in [0.15, 0.30]$).
-  - [ ] Property test: As $w = C_{FN}/C_{FP}$ increases, the optimal threshold $\tau^*$ strictly monotonically decreases (higher risk aversion).
+  - [x] Optimal $\tau^*$ under $C_{FN}:C_{FP} = 5:1$ is strictly less than 0.50 (typically $\tau^* \in [0.15, 0.30]$).
+  - [x] Property test: As $w = C_{FN}/C_{FP}$ increases, the optimal threshold $\tau^*$ strictly monotonically decreases (higher risk aversion).
 
 ---
 
@@ -225,8 +225,8 @@ This document defines the complete engineering tickets for the **Credex Platform
 - **Deliverables:**
   - `src/data/resampler.py`: Safe resampling pipeline applied strictly to training folds.
 - **Acceptance Criteria:**
-  - [ ] Resampling balances minority default class while Tomek links eliminate borderline ambiguous instances.
-  - [ ] Unit tests: Verify test partitions remain completely unresampled (preserving true empirical base rates).
+  - [x] Resampling balances minority default class while Tomek links eliminate borderline ambiguous instances.
+  - [x] Unit tests: Verify test partitions remain completely unresampled (preserving true empirical base rates).
 
 ### CREDEX-14: Comprehensive Financial & Statistical Evaluation Suite
 - **Branch:** `lane-e/metrics-suite`
@@ -235,8 +235,8 @@ This document defines the complete engineering tickets for the **Credex Platform
 - **Deliverables:**
   - `src/evaluation/metrics.py`: Computes ROC-AUC, PR-AUC, Recall@Default, F1-Score, Brier Score, Expected Unit Loss ($5:1, 10:1$), and Total Portfolio Dollar Loss ($\Delta \$$ and $\%$ savings vs. Li & Wu).
 - **Acceptance Criteria:**
-  - [ ] Calculates all statistical and financial metrics in a single pass.
-  - [ ] Unit & Property tests: Brier score strictly $\in [0, 1]$; dollar loss reductions match theoretical savings.
+  - [x] Calculates all statistical and financial metrics in a single pass.
+  - [x] Unit & Property tests: Brier score strictly $\in [0, 1]$; dollar loss reductions match theoretical savings.
 
 ### CREDEX-15: Factorial Ablation Matrix Runner ($2 \times 3 \times 2$)
 - **Branch:** `lane-e/ablation-runner`
@@ -245,8 +245,8 @@ This document defines the complete engineering tickets for the **Credex Platform
 - **Deliverables:**
   - `src/evaluation/ablation_runner.py`: Orchestrates multi-model factorial ablation and saves structured JSON/CSV run artifacts in `experiments/runs/`.
 - **Acceptance Criteria:**
-  - [ ] Executes full 12-cell matrix across champion tree models (LightGBM, CatBoost, XGBoost, Random Forest).
-  - [ ] Outputs structured run records with mean and standard deviation across cross-validation folds.
+  - [x] Executes full 12-cell matrix across champion tree models (LightGBM, CatBoost, XGBoost, Random Forest).
+  - [x] Outputs structured run records with mean and standard deviation across cross-validation folds.
 
 ---
 
@@ -260,8 +260,8 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `src/explainability/shap_explainer.py`: C++ optimized `TreeExplainer` attribution extraction ($N \le 5,000$).
   - `src/explainability/visualizer.py`: Matplotlib/Seaborn vector plot rendering (beeswarm, interaction, waterfall).
 - **Acceptance Criteria:**
-  - [ ] TreeSHAP values satisfy additivity: $\phi_0 + \sum \phi_j(x) = f(x)$ within $10^{-4}$ numerical tolerance.
-  - [ ] High-resolution vector figures saved in `reports/paper/figures/`.
+  - [x] TreeSHAP values satisfy additivity: $\phi_0 + \sum \phi_j(x) = f(x)$ within $10^{-4}$ numerical tolerance.
+  - [x] High-resolution vector figures saved in `reports/paper/figures/`.
 
 ### CREDEX-17: Constrained Counterfactual Recourse Engine (ECOA Compliant)
 - **Branch:** `lane-f/counterfactual-recourse`
@@ -271,9 +271,9 @@ This document defines the complete engineering tickets for the **Credex Platform
   - `src/explainability/adverse_action.py`: Vectorized recourse projection solver ($<50$ ms per applicant) and automated Regulation B adverse action notice generator.
   - `tests/test_counterfactual_recourse.py`: Unit and property tests verifying immutable feature invariance.
 - **Acceptance Criteria:**
-  - [ ] Solved counterfactuals guarantee $f(x_{\text{recourse}}) < \tau^*$.
-  - [ ] Property test: Immutable features (`delinq_2yrs`, `emp_length`) remain strictly identical between original and counterfactual applicant profiles.
-  - [ ] Generates standardized adverse action disclosure notice text compliant with ECOA / FCRA.
+  - [x] Solved counterfactuals guarantee $f(x_{\text{recourse}}) < \tau^*$.
+  - [x] Property test: Immutable features (`delinq_2yrs`, `emp_length`) remain strictly identical between original and counterfactual applicant profiles.
+  - [x] Generates standardized adverse action disclosure notice text compliant with ECOA / FCRA.
 
 ---
 
@@ -292,8 +292,8 @@ This document defines the complete engineering tickets for the **Credex Platform
     - Vector figures: `fig1_roc_pr_comparison.pdf`, `fig2_expected_loss_curves.pdf`, `fig3_shap_global_beeswarm.pdf`, `fig4_actionable_recourse_waterfall.pdf`
     - `reports/paper/PAPER_RESULTS_DIGEST.md`: Executive summary with metrics, percentage lifts, and $p$-values.
 - **Acceptance Criteria:**
-  - [ ] Valid LaTeX tables compile cleanly without syntax errors in standard document classes.
-  - [ ] All PDF figures conform to 300+ DPI vector standards with legible typography.
+  - [x] Valid LaTeX tables compile cleanly without syntax errors in standard document classes.
+  - [x] All PDF figures conform to 300+ DPI vector standards with legible typography.
 
 ### CREDEX-19: Centralized Modular CLI & One-Shot Pipeline Orchestrator
 - **Branch:** `lane-g/cli-orchestrator`
@@ -302,5 +302,5 @@ This document defines the complete engineering tickets for the **Credex Platform
 - **Deliverables:**
   - `src/cli.py`: Subcommands for `ingest`, `replicate-paper`, `run-ablation`, `explain`, `export-paper`, and `run-all`.
 - **Acceptance Criteria:**
-  - [ ] Each CLI subcommand runs independently with configurable flags and robust error handling.
-  - [ ] `python -m src.cli run-all --sample-size 200000` executes full pipeline end-to-end and exits with code 0.
+  - [x] Each CLI subcommand runs independently with configurable flags and robust error handling.
+  - [x] `python -m src.cli run-all --sample-size 200000` executes full pipeline end-to-end and exits with code 0.
