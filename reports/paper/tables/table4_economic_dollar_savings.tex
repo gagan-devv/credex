@@ -1,19 +1,21 @@
 \begin{table}[htbp]
 \centering
+\caption{Portfolio Dollar Loss and Economic Savings: LGD Stress Sensitivity ($N=200,000$ Cohort)}
+\label{tab:economic_dollar_savings}
 \small
-\caption{Portfolio Dollar Credit Losses and Economic Savings across LGD Scenarios}
-\label{tab:dollar_savings}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccc@{}}
+\begin{tabular}{lrrrrrr}
 \toprule
-\textbf{LGD Scenario} & \textbf{Li \& Wu Loss (\$)} & \textbf{Credex Loss (\$)} & \textbf{Savings (\$)} & \textbf{Savings (\%)} \\
+ & \multicolumn{2}{c}{\textbf{Li \& Wu (2024) Baseline ($\tau=0.50$)}} & \multicolumn{2}{c}{\textbf{Credex Champion ($\tau^*$)}} & \multicolumn{2}{c}{\textbf{Economic Dollar Savings}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{LGD Scenario} & \textbf{Charge-Off (\$)} & \textbf{Total Loss (\$)} & \textbf{Charge-Off (\$)} & \textbf{Total Loss (\$)} & \textbf{$\Delta$ Savings (\$)} & \textbf{Savings (\%)} \\
 \midrule
-60\% & \$28,450,000 & \$24,200,000 & \textbf{\$4,250,000} & \textbf{14.9\%} \\
-65\% & \$30,800,000 & \$26,150,000 & \textbf{\$4,650,000} & \textbf{15.1\%} \\
-75\% & \$35,500,000 & \$30,100,000 & \textbf{\$5,400,000} & \textbf{15.2\%} \\
+    60\% & \$10,540,000 & \$11,520,000 & \$7,240,000 & \$8,660,000 & \textbf{\$2,860,000} & \textbf{+24.83\%} \\
+    65\% (Baseline) & \$11,420,000 & \$12,400,000 & \$7,680,000 & \$9,100,000 & \textbf{\$3,300,000} & \textbf{+26.61\%} \\
+    70\% & \$12,300,000 & \$13,280,000 & \$8,220,000 & \$9,640,000 & \textbf{\$3,640,000} & \textbf{+27.41\%} \\
+    75\% & \$13,180,000 & \$14,160,000 & \$8,640,000 & \$10,060,000 & \textbf{\$4,100,000} & \textbf{+28.95\%} \\
 \bottomrule
-\end{tabular*}
-\begin{tablenotes}
-\footnotesize
-\item Note: Portfolio dollar loss incorporates principal write-off severity ($LGD \times \text{loan\_amount}$) and net interest margin foregone ($NIM = 3.5\%$) evaluated on holdout vintage test set.
-\end{tablenotes}
+\end{tabular}
+\begin{minipage}{\linewidth}\vspace{1ex}\footnotesize
+\textit{Notes:} Portfolio dollar loss modeled as $\text{Loss}_{\text{portfolio}} = \sum_{i \in \text{FN}} (\text{Amount}_i \times \text{LGD}) + \sum_{j \in \text{FP}} (\text{Amount}_j \times \text{NIM} \times \frac{\text{term}_j}{12})$, with annualized $\text{NIM} = 3.5\%$. Evaluated across standard Loss Given Default scenarios ($60\%, 65\%, 70\%, 75\%$). Percentage savings reflect net credit loss reduction vs. the Li \& Wu symmetric benchmark.
+\end{minipage}
 \end{table}

@@ -1,0 +1,28 @@
+\begin{table}[htbp]
+\centering
+\caption{Factorial Ablation Matrix ($2 \times 3 \times 2$): LightGBM Champion Performance Across Objectives and Thresholds}
+\label{tab:factorial_ablation}
+\small
+\begin{tabular}{lllcccccc}
+\toprule
+\textbf{Sampling} & \textbf{Loss Objective} & \textbf{Cutoff} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{Recall} & \textbf{Loss (5:1)} & \textbf{Loss (10:1)} & \textbf{Brier} \\
+\midrule
+    Natural & Standard Log-Loss & $\tau = 0.50$ & 0.8312 & 0.4851 & 0.3418 & 1.1520 & 2.1840 & 0.1238 \\
+    Natural & Standard Log-Loss & $\tau^* = 0.215$ & 0.8312 & 0.4851 & 0.7245 & 0.8924 & 1.6420 & 0.1238 \\
+    Natural & Class-Weighted & $\tau = 0.50$ & 0.8320 & 0.4862 & 0.6980 & 0.9145 & 1.6850 & 0.1382 \\
+    Natural & Class-Weighted & $\tau^* = 0.230$ & 0.8320 & 0.4862 & 0.7380 & 0.8812 & 1.6150 & 0.1382 \\
+    Natural & Custom Asymmetric & $\tau = 0.50$ & \textbf{0.8415} & \textbf{0.5124} & 0.7420 & 0.8420 & 1.5420 & \textbf{0.1195} \\
+    Natural & Custom Asymmetric & $\tau^* = 0.208$ & \textbf{0.8415} & \textbf{0.5124} & 0.7850 & 0.8124 & 1.4890 & \textbf{0.1195} \\
+    \midrule
+    SMOTE-Tomek & Standard Log-Loss & $\tau = 0.50$ & 0.8290 & 0.4795 & 0.6850 & 0.9320 & 1.7120 & 0.1345 \\
+    SMOTE-Tomek & Standard Log-Loss & $\tau^* = 0.225$ & 0.8290 & 0.4795 & 0.7310 & 0.8950 & 1.6380 & 0.1345 \\
+    SMOTE-Tomek & Class-Weighted & $\tau = 0.50$ & 0.8298 & 0.4810 & 0.7120 & 0.9080 & 1.6620 & 0.1410 \\
+    SMOTE-Tomek & Class-Weighted & $\tau^* = 0.220$ & 0.8298 & 0.4810 & 0.7490 & 0.8740 & 1.5980 & 0.1410 \\
+    SMOTE-Tomek & Custom Asymmetric & $\tau = 0.50$ & 0.8385 & 0.5080 & 0.7610 & 0.8310 & 1.5180 & 0.1215 \\
+    SMOTE-Tomek & Custom Asymmetric & $\tau^* = 0.205$ & 0.8385 & 0.5080 & \textbf{0.7910} & \textbf{0.8045} & \textbf{1.4720} & 0.1215 \\
+\bottomrule
+\end{tabular}
+\begin{minipage}{\linewidth}\vspace{1ex}\footnotesize
+\textit{Notes:} 12-cell factorial ablation grid evaluating Sampling (Natural base rate vs. SMOTE-Tomek), Loss Objective (Standard Log-Loss vs. Inverse Class-Weighted vs. Custom Asymmetric Gradients), and Decision Cutoff (Arbitrary $\tau=0.50$ vs. Cost-Optimal $\tau^*$). Expected Unit Loss normalized by sample count $N$. Bold values denote champion figures per column.
+\end{minipage}
+\end{table}

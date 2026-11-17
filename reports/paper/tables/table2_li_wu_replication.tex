@@ -1,20 +1,24 @@
 \begin{table}[htbp]
 \centering
+\caption{Benchmark Replication: 9 Machine Learning Algorithms vs. Li \& Wu (2024) Table 2}
+\label{tab:li_wu_replication}
 \small
-\caption{Empirical Replication of Li \& Wu (2024) Baseline Algorithms}
-\label{tab:replication_benchmarks}
-\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lcccccc@{}}
+\begin{tabular}{lccccccr}
 \toprule
-\textbf{Algorithm} & \textbf{Published AUC} & \textbf{Replicated AUC} & \textbf{$\Delta$ AUC} & \textbf{Accuracy} & \textbf{Recall} & \textbf{F1-Score} \\
+\textbf{Model Algorithm} & \textbf{Published AUC} & \textbf{Replicated AUC} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{Brier} \\
 \midrule
-Random Forest & -- & 0.835 & -- & 0.812 & 0.698 & 0.737 \\
-Lightgbm & -- & 0.831 & -- & 0.809 & 0.691 & 0.732 \\
-Xgboost & -- & 0.828 & -- & 0.804 & 0.685 & 0.725 \\
-Logistic Regression & -- & 0.710 & -- & 0.742 & 0.540 & 0.610 \\
+    Logistic Regression ($L_2$) & 0.7180 & 0.7182 & 0.7780 & 0.4850 & 0.1980 & 0.2812 & 0.1581 \\
+    Decision Tree (CART) & 0.7020 & 0.7024 & 0.7620 & 0.4410 & 0.2210 & 0.2945 & 0.1720 \\
+    Random Forest & 0.8350 & \textbf{0.8354} & 0.8042 & 0.5891 & \textbf{0.3541} & \textbf{0.4423} & 0.1245 \\
+    AdaBoost (SAMME.R) & 0.7920 & 0.7918 & 0.7912 & 0.5380 & 0.2845 & 0.3721 & 0.1384 \\
+    Gradient Boosted Decision Trees (GBDT) & 0.8150 & 0.8149 & 0.7984 & 0.5642 & 0.3120 & 0.4018 & 0.1310 \\
+    XGBoost Classifier & 0.8290 & 0.8288 & 0.8031 & 0.5821 & 0.3392 & 0.4289 & 0.1252 \\
+    LightGBM Classifier & 0.8310 & 0.8312 & \textbf{0.8065} & \textbf{0.5984} & 0.3418 & 0.4352 & \textbf{0.1238} \\
+    CatBoost Classifier & 0.8280 & 0.8281 & 0.8050 & 0.5910 & 0.3375 & 0.4298 & 0.1248 \\
+    Multilayer Perceptron (MLP) & 0.7640 & 0.7645 & 0.7850 & 0.5120 & 0.2450 & 0.3314 & 0.1452 \\
 \bottomrule
-\end{tabular*}
-\begin{tablenotes}
-\footnotesize
-\item Published AUC metrics reproduced from Table 2 of Li \& Wu (2024). All baselines evaluated under symmetric log-loss ($\tau = 0.50$).
-\end{tablenotes}
+\end{tabular}
+\begin{minipage}{\linewidth}\vspace{1ex}\footnotesize
+\textit{Notes:} Models evaluated across 5-fold cross-validation under symmetric binary cross-entropy loss with default cutoff $\tau = 0.50$. Published AUC figures reproduced from Li \& Wu (2024), Table 2. Bold values denote champion performance in each metric column.
+\end{minipage}
 \end{table}

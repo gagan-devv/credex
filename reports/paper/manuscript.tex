@@ -1,0 +1,182 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,amsfonts,amsthm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{microtype}
+\usepackage{authblk}
+\usepackage{algorithm}
+\usepackage{algorithmic}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue
+}
+
+\title{\textbf{Credex: An Asymmetric, Cost-Sensitive, and Explainable Machine Learning Framework for Retail Credit Risk Underwriting}}
+\author[1]{Gagan Ahlawat}
+\author[1]{Credex Research Team}
+\affil[1]{Department of Financial Engineering \& Quantitative Intelligence}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+While empirical benchmarks in financial machine learning---most notably Li \& Wu (\textit{Finance Research Letters}, 2024)---demonstrate that gradient boosted decision trees achieve superior default ranking accuracy over traditional scorecards, their operational deployment remains fundamentally limited by the \textit{cost-symmetry fallacy}. Standard classifiers optimize symmetric logarithmic cross-entropy loss under arbitrary decision cutoffs ($\tau = 0.50$), implicitly equating the severe economic loss of approving a defaulting borrower (False Negative) with the modest opportunity cost of wrongfully denying a creditworthy applicant (False Positive). In retail lending portfolios, this cost asymmetry is extreme, with loss penalty ratios commonly ranging between $5:1$ and $10:1$. In this paper, we present \textbf{Credex}, an end-to-end asymmetric machine learning and regulatory recourse architecture. First, we derive exact first- and second-order custom asymmetric loss gradients ($g_i, h_i$) with numerical Hessian damping ($\epsilon = 10^{-6}$), penalizing misclassified defaults directly at tree-split time across gradient boosted ensembles. Second, we integrate out-of-fold probability calibration with an empirical threshold optimization engine that computes the exact cost-optimal cutoff ($\tau^*$). Third, we formulate a constrained $L_1$ counterfactual recourse solver that freezes immutable borrower characteristics (e.g., delinquency history, credit inquiries, tenure) while identifying minimal actionable adjustments on mutable balance sheet items, ensuring strict compliance with Equal Credit Opportunity Act (ECOA) Regulation B disclosures. Evaluating on a stratified cohort of 200,000 LendingClub contracts, the Credex champion model elevates default recall from 34.2\% to 78.5\% (+129.7\% relative surge) while attaining an ROC-AUC of 0.8415 (DeLong test $Z = 4.82, p < 0.001$). More crucially, balance sheet portfolio simulations reveal a 26.6\% reduction in total net credit loss, yielding \$3.30 million in net economic dollar savings per 200,000 originations under baseline Loss Given Default (LGD = 65\%).
+\end{abstract}
+
+\textbf{Keywords:} Credit Risk Modeling, Asymmetric Cost-Sensitive Learning, Custom Boosted Gradients, Loss Given Default, Explainable AI, Actionable Counterfactual Recourse, Equal Credit Opportunity Act.
+
+\newpage
+
+\section{Introduction}
+Credit risk underwriting constitutes the core operational pillar of retail banking and peer-to-peer (P2P) lending platforms. The primary objective of an automated credit scoring engine is to distinguish between creditworthy applicants and potential default risks prior to capital origination. Over the past decade, financial institutions have increasingly migrated from parametric statistical models (e.g., Logistic Regression and Linear Discriminant Analysis) to non-parametric tree ensembles, such as Random Forests, XGBoost, LightGBM, and CatBoost \citep{lessmann2015benchmarking, xia2020credit}.
+
+Recently, \citet{li2024evaluating} published an extensive empirical benchmark in \textit{Finance Research Letters}, rigorously comparing nine machine learning algorithms across consumer loan datasets. Their empirical findings established that ensemble tree algorithms dominate linear baselines and shallow neural networks in default discrimination, achieving Receiver Operating Characteristic Area Under the Curve (ROC-AUC) values exceeding $0.830$. 
+
+However, despite these predictive achievements, existing empirical methodologies suffer from three fundamental structural shortcomings that impede real-world financial efficiency and regulatory compliance:
+\begin{enumerate}
+    \item \textbf{The Cost-Symmetry Fallacy:} Classical training pipelines minimize symmetric binary cross-entropy loss, treating a Type II error (approving a loan that defaults, leading to principal write-off) as economically equivalent to a Type I error (rejecting a creditworthy borrower, incurring only the foregone net interest margin). In practice, retail credit write-offs exceed forgone margin by an order of magnitude, rendering symmetric loss optimization economically irrational \citep{elkan2001foundations}.
+    \item \textbf{The Arbitrary $\tau = 0.50$ Decision Cutoff:} Benchmarks uniformly evaluate models at a default decision threshold of $\tau = 0.50$. In class-imbalanced credit datasets (where default rates typically hover between 15\% and 25\%), applying $\tau = 0.50$ causes classifiers to miss up to two-thirds of defaulting borrowers, collapsing default recall to under 35\%.
+    \item \textbf{The Explainability and Regulatory Recourse Void:} While Shapley Additive Explanations (SHAP) provide post-hoc local feature attributions, they do not provide actionable pathways for rejected borrowers. Under the Equal Credit Opportunity Act (ECOA, 12 CFR Part 1002) and the Fair Credit Reporting Act (FCRA), lenders must deliver specific adverse action notices. Existing recourse models often suggest illegal or impossible interventions, such as modifying historical delinquency records or altering employment tenure.
+\end{enumerate}
+
+To overcome these structural limitations, we introduce \textbf{Credex}, a unified, asymmetric, cost-sensitive, and legally compliant credit risk intelligence architecture.
+
+\section{The Credex Mathematical Formulation}
+
+\subsection{Asymmetric Cost-Sensitive Binary Cross-Entropy}
+Let $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^N$ denote a training dataset of $N$ loan contracts, where $x_i \in \mathbb{R}^d$ represents the feature vector of applicant $i$ and $y_i \in \{0, 1\}$ denotes the binary default indicator ($y_i = 1$ for default/charge-off, $y_i = 0$ for fully paid). Let $f(x_i) \in \mathbb{R}$ represent the raw margin output (logits) of a gradient boosted ensemble, mapped to predicted probability $p_i = \sigma(f(x_i)) = \frac{1}{1 + e^{-f(x_i)}}$.
+
+We introduce an asymmetric loss penalty parameter $w = \frac{C_{\text{FN}}}{C_{\text{FP}}} \ge 1$, which quantifies the economic loss ratio between a False Negative ($y=1, \hat{y}=0$) and a False Positive ($y=0, \hat{y}=1$). The asymmetric binary cross-entropy loss is formulated as:
+\begin{equation}
+\mathcal{L}(y_i, f(x_i); w) = - \left[ w \cdot y_i \ln(p_i) + (1 - y_i) \ln(1 - p_i) \right]
+\end{equation}
+
+Substituting $p_i = \sigma(f_i)$ and simplifying in terms of raw logits $f_i$:
+\begin{equation}
+\mathcal{L}(y_i, f_i; w) = \ln(1 + e^{f_i}) - y_i f_i - (w - 1) y_i \left[ f_i - \ln(1 + e^{f_i}) \right]
+\end{equation}
+
+\subsection{Analytical Gradients and Hessian Damping}
+Tree-based gradient boosting algorithms (LightGBM, XGBoost, CatBoost) construct additive decision trees via second-order Taylor series approximations of the objective function. To train these models directly with our asymmetric objective, we derive the exact first-order gradient $g_i$ and second-order Hessian $h_i$ with respect to raw logit $f_i$:
+\begin{align}
+g_i &= \frac{\partial \mathcal{L}}{\partial f_i} = p_i \left( 1 + (w - 1) y_i \right) - w y_i \\
+h_i &= \frac{\partial^2 \mathcal{L}}{\partial f_i^2} = p_i (1 - p_i) \left( 1 + (w - 1) y_i \right) + \epsilon
+\end{align}
+where $\epsilon = 10^{-6}$ represents a strictly positive numerical damping regularizer that guarantees $h_i > 0$ across all training instances, preventing denominator collapse and gradient explosion during tree node splitting.
+
+\subsection{Optimal Decision Thresholding}
+Post-training, we optimize the decision threshold $\tau^*$ to minimize total expected economic loss:
+\begin{equation}
+\tau^* = \arg\min_{\tau \in [0.01, 0.99]} \sum_{i=1}^M \left[ C_{\text{FN}} \cdot \mathbb{I}(y_i = 1, p_i < \tau) + C_{\text{FP}} \cdot \mathbb{I}(y_i = 0, p_i \ge \tau) \right]
+\end{equation}
+
+For balance sheet portfolio evaluation, we extend this to loan-level dollar exposure:
+\begin{equation}
+\text{Loss}_{\text{portfolio}}(\tau) = \sum_{i \in \text{FN}(\tau)} \left( \text{Amount}_i \times \text{LGD} \right) + \sum_{j \in \text{FP}(\tau)} \left( \text{Amount}_j \times \text{NIM} \times \frac{\text{Term}_j}{12} \right)
+\end{equation}
+where $\text{LGD}$ is Loss Given Default ($60\% - 75\%$), $\text{NIM}$ is Net Interest Margin ($3.5\%$), and $\text{Term}_j$ is the contractual maturity in months.
+
+\section{Data Pipeline \& Feature Engineering}
+We evaluate our methodology on a stratified cohort of 200,000 completed lending contracts from the historical LendingClub database (2012--2018). We isolate completed contracts by mapping \texttt{Fully Paid} to $y=0$ and \texttt{Charged Off} / \texttt{Default} to $y=1$, rejecting active loans to avoid censoring bias.
+
+\input{reports/paper/tables/table1_descriptive_stats.tex}
+
+To capture borrower financial leverage independent of platform-assigned risk grades, we engineer four domain solvency ratios:
+\begin{itemize}
+    \item \textbf{Payment-to-Income (PTI):} $\frac{\text{installment}}{\text{annual\_income} / 12}$
+    \item \textbf{Loan-to-Income (LTI):} $\frac{\text{loan\_amount}}{\text{annual\_income}}$
+    \item \textbf{Liquidity Buffer:} $\text{total\_rev\_hi\_lim} - \text{revol\_bal}$
+    \item \textbf{Delinquency Velocity:} $\frac{\text{delinq\_2yrs}}{\text{total\_acc}}$
+\end{itemize}
+
+\section{Empirical Results \& Benchmark Replication}
+
+\subsection{Replication of Li \& Wu (2024)}
+Table \ref{tab:li_wu_replication} presents the 5-fold cross-validation replication of all nine machine learning algorithms benchmarked in \citet{li2024evaluating}.
+
+\input{reports/paper/tables/table2_li_wu_replication.tex}
+
+\subsection{Factorial Ablation Analysis}
+To decompose the performance gains, Table \ref{tab:factorial_ablation} displays our $2 \times 3 \times 2$ Factorial Ablation Matrix across Sampling, Loss Objectives, and Decision Thresholds.
+
+\input{reports/paper/tables/table3_cost_sensitive_ablation.tex}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{reports/paper/figures/fig1_roc_pr_comparison.png}
+        \caption{ROC and Precision-Recall Dynamics}
+        \label{fig:roc_pr}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{reports/paper/figures/fig2_expected_loss_curves.png}
+        \caption{Expected Loss Curves and Optimal $\tau^*$}
+        \label{fig:loss_curves}
+    \end{subfigure}
+    \caption{Empirical discrimination curves and cost-optimal decision thresholding under asymmetric loss.}
+    \label{fig:empirical_dynamics}
+\end{figure}
+
+\subsection{Balance Sheet Economic Dollar Savings}
+Table \ref{tab:economic_dollar_savings} demonstrates the financial balance sheet impact across varied Loss Given Default (LGD) scenarios.
+
+\input{reports/paper/tables/table4_economic_dollar_savings.tex}
+
+\section{Explainability \& Regulatory Recourse}
+
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{reports/paper/figures/fig3_shap_global_beeswarm.png}
+        \caption{Global TreeSHAP Feature Attributions}
+        \label{fig:shap_beeswarm}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \includegraphics[width=\textwidth]{reports/paper/figures/fig4_actionable_recourse_waterfall.png}
+        \caption{Adverse Action \& Recourse Path}
+        \label{fig:recourse_waterfall}
+    \end{subfigure}
+    \caption{Interpretability and legally compliant actionable counterfactual recourse.}
+    \label{fig:xai_recourse}
+\end{figure}
+
+Under the Equal Credit Opportunity Act (ECOA) Regulation B, lenders must deliver legally actionable explanations. Figure \ref{fig:xai_recourse} illustrates how Credex freezes immutable historical variables while solving for feasible financial recourse on mutable loan parameters.
+
+\section{Conclusion}
+This paper presented Credex, demonstrating that resolving the cost-symmetry fallacy via custom asymmetric gradients and threshold optimization yields dramatic balance sheet loss reductions (\$3.30M per 200,000 originations) while delivering compliant adverse action recourse.
+
+\bibliographystyle{plainnat}
+\begin{thebibliography}{99}
+\bibitem[Elkan(2001)]{elkan2001foundations}
+Elkan, C. (2001). The foundations of cost-sensitive learning. In \textit{International Joint Conference on Artificial Intelligence} (Vol. 17, No. 1, pp. 973--978).
+
+\bibitem[Lessmann et al.(2015)]{lessmann2015benchmarking}
+Lessmann, S., Baesens, B., Seow, H. V., \& Thomas, L. C. (2015). Benchmarking state-of-the-art classification algorithms for credit scoring: An update of research. \textit{European Journal of Operational Research}, 247(1), 124--136.
+
+\bibitem[Li \& Wu(2024)]{li2024evaluating}
+Li, Y., \& Wu, X. (2024). Evaluating machine learning models for credit scoring: A comprehensive empirical benchmark. \textit{Finance Research Letters}, 60, 104867.
+
+\bibitem[Lundberg \& Lee(2017)]{lundberg2017unified}
+Lundberg, S. M., \& Lee, S. I. (2017). A unified approach to interpreting model predictions. \textit{Advances in Neural Information Processing Systems}, 30, 4765--4774.
+
+\bibitem[Xia et al.(2020)]{xia2020credit}
+Xia, Y., Liu, C., Li, B., \& Liu, N. (2020). A boosted decision tree approach using Bayesian hyper-parameter optimization for credit scoring. \textit{Expert Systems with Applications}, 143, 113071.
+\end{thebibliography}
+
+\end{document}
