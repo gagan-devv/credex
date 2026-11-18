@@ -57,7 +57,15 @@
   #v(1.4em)
   
   #text(size: 11pt, weight: "bold")[
-    Gagan Ahlawat #h(2em) Prajjwal Dwivedi #h(2em) Radhika Namdeo #h(2em) Nihal Singh
+    Gagan Ahlawat #h(1.8em) Prajjwal Dwivedi #h(1.8em) Radhika Namdeo #h(1.8em) Nihal Singh
+  ]
+  #v(0.4em)
+  #text(size: 9pt, fill: rgb("#334455"))[
+    Atal Bihari Vajpayee Indian Institute of Information Technology and Management, Gwalior
+  ]
+  #v(0.2em)
+  #text(size: 8.2pt, fill: rgb("#556677"))[
+    Email: #link("mailto:gagan.devvv@gmail.com")[gagan.devvv\@gmail.com], #link("mailto:dprajjwal11@gmail.com")[dprajjwal11\@gmail.com], #link("mailto:radhikanamdeo18@gmail.com")[radhikanamdeo18\@gmail.com]
   ]
   #v(1.2em)
 ]
